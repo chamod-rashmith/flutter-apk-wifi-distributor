@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flutter-apk-wifi-distributor"
+version = "1.0.0"
+authors = [
+  { name = "Chamod Rashmith", email = "chamodrashmithpramuditha@gmail.com" },
+]
+description = "Build Flutter split APKs, terminate RAM-heavy Gradle daemons, and serve APKs over local Wi-Fi with an instant mobile-friendly download portal."
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = ["flutter", "apk", "wifi", "memory-optimization", "gradle", "mobile-development"]
+
+[project.scripts]
+apk-distribute = "flutter_apk_wifi_distributor.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["flutter_apk_wifi_distributor*"]

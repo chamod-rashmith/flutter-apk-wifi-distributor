@@ -1,0 +1,24 @@
+{
+  "name": "flutter-apk-wifi-distributor",
+  "displayName": "Flutter APK Wi-Fi Distributor & RAM Optimizer",
+  "version": "1.0.0",
+  "description": "Builds Flutter split APKs, automatically reclaims Windows RAM by terminating Gradle daemons, and distributes APKs directly to mobile devices over local Wi-Fi with an instant web server.",
+  "suggestedPrompts": [
+    "Build split APKs and share to my phone over Wi-Fi",
+    "Clean Gradle memory and share the latest APK to my mobile",
+    "Start local Wi-Fi download server for the Flutter release APK"
+  ],
+  "author": {
+    "name": "Chamod Rashmith"
+  },
+  "keywords": [
+    "flutter",
+    "apk",
+    "wifi",
+    "memory",
+    "ram",
+    "gradle",
+    "distribute",
+    "android"
+  ]
+}
