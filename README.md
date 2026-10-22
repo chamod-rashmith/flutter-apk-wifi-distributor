@@ -2,7 +2,7 @@
 
 # 🚀 Flutter APK Wi-Fi Distributor & RAM Optimizer
 
-**Instant, cable-free Flutter APK distribution over local Wi-Fi with automated Windows RAM recovery.**
+**Instant, cable-free Flutter APK distribution over local Wi-Fi with on-demand package building and automated Windows RAM recovery.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-brightgreen.svg)](#installation)
@@ -28,43 +28,49 @@ Every Flutter developer faces two major workflow bottlenecks during day-to-day t
 
 ## 💡 The Solution
 
-**`flutter-apk-wifi-distributor`** automates this entire lifecycle into a single command:
+**`flutter-apk-wifi-distributor`** unifies build selection, RAM recovery, and wireless distribution into one smooth experience:
 
-1. ⚡ **Compiles lean Split APKs** (`--split-per-abi`) to cut download sizes by ~60%.
-2. 🧹 **Immediately terminates Gradle daemons** (`.\gradlew --stop`) and flushes process working sets to reclaim gigabytes of system RAM.
-3. 📶 **Auto-detects your local Wi-Fi IP** and launches an embedded, zero-config HTTP server hosting a sleek dark-mode mobile download portal.
-4. 📱 **One-tap phone download:** Just open the local link on your mobile browser (or scan QR) to download and install at full local Wi-Fi speeds without consuming mobile data.
+1. 🌐 **Launch Server First:** Start the distribution server immediately—no need to compile beforehand!
+2. 🎯 **On-Demand Package Selection:** Choose what to build right from your mobile phone browser or terminal:
+   - ⚡ **Split APKs (Release):** Compiles `arm64-v8a`, `armeabi-v7a`, `x86_64` (cuts file size by ~60%).
+   - 📦 **Universal Release APK:** Single fat APK for all architectures.
+   - 🐞 **Debug APK:** Fast unoptimized compilation for quick testing.
+3. 🧹 **Automated RAM Reclamation:** Automatically terminates lingering Gradle daemons (`.\gradlew --stop`) and flushes Windows working set memory right after compilation and upon shutdown.
+4. 📶 **Auto-detected Local Wi-Fi:** Detects your machine's local IPv4 address and hosts an embedded, dark-mode, mobile-first web portal on port `8080`.
+5. 📱 **Multi-Package Download Cards:** Displays all compiled APKs with direct one-tap download buttons, file sizes, and architecture badges.
 
 ---
 
 ## 🔄 How It Works
 
 ```mermaid
-flowchart LR
-    A["💻 Flutter Build<br/>(--split-per-abi)"] --> B["🧹 RAM Optimizer<br/>(Stop Gradle Daemons)"]
-    B --> C["📶 Auto IP Discovery<br/>(Local Wi-Fi Subnet)"]
-    C --> D["🌐 Multi-threaded Server<br/>(:8080)"]
-    D --> E["📱 Physical Phone<br/>(Instant 1-Click Install)"]
+flowchart TD
+    A["🌐 Start Wi-Fi Server (:8080)"] --> B["📱 Mobile Portal / CLI Choice<br/>(Split APK | Universal | Debug)"]
+    B --> C["⚙️ Flutter Compilation<br/>(Real-time Logs)"]
+    C --> D["🧹 RAM Optimizer<br/>(Stop Gradle Daemons + Trim Memory)"]
+    D --> E["📱 One-Tap Mobile Download<br/>(Zero Mobile Data Used)"]
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (One-Line Install)
 
-### 1. Installation
+Run the single-line command for your operating system to install both the global `apk-distribute` CLI and the Antigravity AI Plugin:
 
-#### Option A: Install globally via pip
-```bash
-git clone https://github.com/chamodrashmith/flutter-apk-wifi-distributor.git
-cd flutter-apk-wifi-distributor
-pip install -e .
-```
-
-#### Option B: Windows PowerShell One-Click
-Run inside the repository:
+### Windows (PowerShell)
 ```powershell
-.\bin\install.ps1
+git clone https://github.com/chamodrashmith/flutter-apk-wifi-distributor.git && cd flutter-apk-wifi-distributor && powershell -ExecutionPolicy Bypass -File .\bin\install.ps1
 ```
+
+### macOS / Linux (Bash)
+```bash
+git clone https://github.com/chamodrashmith/flutter-apk-wifi-distributor.git && cd flutter-apk-wifi-distributor && chmod +x ./bin/install.sh && ./bin/install.sh
+```
+
+> [!TIP]
+> The installer automatically:
+> 1. Installs the command-line tool `apk-distribute` via `pip`.
+> 2. Deploys the complete AI Plugin into your local Antigravity environment (`$HOME/.gemini/config/plugins/flutter-apk-wifi-distributor`) so coding agents can trigger it automatically!
 
 ---
 
@@ -73,23 +79,31 @@ Run inside the repository:
 Navigate to your Flutter app directory and run:
 
 ```bash
-# Build split APKs, clean RAM, and host over Wi-Fi:
-apk-distribute --build
+# Workflow 1: Launch server first and select/build directly from your phone!
+apk-distribute --server
 
-# Or if you already have a built APK and just want to share & free RAM:
+# Workflow 2: Interactive terminal menu
 apk-distribute
+
+# Workflow 3: Direct compilation shortcuts
+apk-distribute --split       # Build split APKs & launch server
+apk-distribute --universal   # Build universal release APK & launch server
+apk-distribute --debug       # Build debug APK & launch server
+apk-distribute --clean-ram   # Only reclaim Windows RAM & stop Gradle daemons
 ```
 
 When started, your terminal displays:
 
 ```text
-=================================================================
+====================================================================
 🚀 FLUTTER APK WI-FI DISTRIBUTION SERVER ONLINE
-=================================================================
-📱 Phone Portal URL : http://192.168.8.154:8080
-⬇️ Direct Download  : http://192.168.8.154:8080/app-release.apk
-=================================================================
+====================================================================
+📦 Flutter Project   : My Flutter App
+📱 Phone Portal URL  : http://<LOCAL_WIFI_IP>:8080
+⬇️ Direct Download   : http://<LOCAL_WIFI_IP>:8080/download/app-arm64-v8a-release.apk
+====================================================================
 👉 Open the URL on your mobile browser (connected to same Wi-Fi).
+👉 You can select & trigger compilation directly from the Mobile Web Portal!
 👉 Press Ctrl+C in this terminal when finished to stop & free memory.
 ```
 
@@ -105,11 +119,17 @@ Opening `http://<YOUR_IP>:8080` on your phone displays a clean, responsive mobil
 │               My Flutter App             │
 │   Direct Wi-Fi transfer ready. No data.  │
 │                                          │
+│  [⚡] Split APKs (Release) [Recommended] │
+│  [📦] Universal Release APK              │
+│  [🐞] Debug APK                          │
+│                                          │
 │       ┌──────────────────────────┐       │
-│       │   ⬇️ Download APK Now    │       │
+│       │   🔨 Build & Optimize    │       │
 │       └──────────────────────────┘       │
 │                                          │
-│         [📦 37.4 MB]   [⚙️ ARM64]         │
+│  Available Packages:                     │
+│  • ARM64 Split APK[24.5 MB] [⬇️ Download]|
+│  • Universal APK [48.1 MB] [⬇️ Download] |
 └──────────────────────────────────────────┘
 ```
 
@@ -119,11 +139,13 @@ Opening `http://<YOUR_IP>:8080` on your phone displays a clean, responsive mobil
 
 | Flag | Default | Description |
 | :--- | :---: | :--- |
-| `--build` | `False` | Triggers `flutter build apk --split-per-abi --release` before serving. |
-| `--no-split` | `False` | Builds universal fat APK instead of ABI splits. |
-| `--clean-ram` | `True` | Stops lingering Gradle daemons and trims Windows memory working sets. |
+| `--server` | `False` | Launches distribution server immediately without building first. |
+| `--split` | `False` | Compiles split-per-abi release APKs before launching server. |
+| `--universal` | `False` | Compiles single universal release APK before launching server. |
+| `--debug` | `False` | Compiles debug APK before launching server. |
+| `--build [target]` | `split` | Builds target (`split`, `universal`, `debug`). |
+| `--clean-ram` | `False` | Stops lingering Gradle daemons and trims Windows memory working sets. |
 | `--port <port>` | `8080` | Initial port to bind (automatically tries next available ports if busy). |
-| `--type <abi>` | `arm64` | Target ABI to distribute (`arm64`, `arm32`, `x86_64`, `universal`). |
 
 ---
 
@@ -133,10 +155,11 @@ This repository includes a ready-to-use **Antigravity AI Plugin** bundle inside 
 
 To install it into your local Antigravity environment:
 ```powershell
-Copy-Item -Recurse -Force "plugin" "$HOME\.gemini\config\plugins\flutter-apk-wifi-distributor"
+Copy-Item -Recurse -Force "plugin\*" "$HOME\.gemini\config\plugins\flutter-apk-wifi-distributor"
 ```
 
 Once installed, simply ask Antigravity:
+> *"Launch Wi-Fi server to choose and build my Flutter APK"*  
 > *"Build split APKs and share to my phone over Wi-Fi"*  
 > *"Clean Gradle RAM and distribute the latest APK to my mobile"*
 

@@ -2,13 +2,14 @@ import sys
 import shutil
 import argparse
 from pathlib import Path
+
 from .network import get_local_ip
 from .optimizer import clean_system_ram
-from .core import find_built_apks, get_project_name, run_flutter_build
-from .server import generate_mobile_portal_html, serve_directory
+from .core import BUILD_TARGETS, find_built_apks, get_project_name, run_flutter_build, stage_apks
+from .server import serve_portal
 
-def main():
-    # Windows UTF-8 stdout configuration
+def configure_windows_utf8():
+    """Configure UTF-8 encoding for standard streams on Windows."""
     if sys.platform == "win32":
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -16,68 +17,117 @@ def main():
         except Exception:
             pass
 
+def interactive_menu(project_root: Path) -> str:
+    """Display an interactive CLI prompt to choose the desired action."""
+    app_name = get_project_name(project_root)
+    existing_apks = find_built_apks(project_root)
+
+    print("\n" + "=" * 68)
+    print("🚀 FLUTTER APK WI-FI DISTRIBUTOR & RAM OPTIMIZER")
+    print("=" * 68)
+    print(f"📦 Active Project : {app_name}")
+    if existing_apks:
+        print(f"📁 Existing APKs  : {len(existing_apks)} package(s) ready in build cache")
+    print("=" * 68)
+    print("\nSelect an action:")
+    print("  [1] ⚡ Build Split APKs (arm64, arm32, x86_64) & Launch Server  [Recommended]")
+    print("  [2] 📦 Build Universal Release APK (Fat APK) & Launch Server")
+    print("  [3] 🐞 Build Debug APK & Launch Server")
+    print("  [4] 🌐 Launch Server Immediately (Select & Build from Mobile Web Portal)")
+    print("  [5] 🧹 Stop Gradle Daemons & Reclaim Windows RAM Only")
+    print("  [0] ❌ Exit\n")
+
+    try:
+        choice = input("Enter choice [1-5] (default: 4): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\nExiting.")
+        sys.exit(0)
+
+    if not choice:
+        return "4"
+    return choice
+
+def main():
+    configure_windows_utf8()
+
     parser = argparse.ArgumentParser(
         prog="apk-distribute",
-        description="Flutter APK Wi-Fi Distributor & RAM Optimizer"
+        description="Flutter APK Wi-Fi Distributor & Windows RAM Optimizer"
     )
-    parser.add_argument("--build", action="store_true", help="Compile release APKs before sharing")
-    parser.add_argument("--no-split", action="store_true", help="Build single universal APK instead of split-per-abi")
-    parser.add_argument("--clean-ram", action="store_true", default=True, help="Clean RAM and Gradle daemons (default: enabled)")
-    parser.add_argument("--port", type=int, default=8080, help="Initial port to bind (default: 8080)")
     parser.add_argument(
-        "--type",
-        choices=["arm64", "arm32", "x86_64", "universal", "auto"],
-        default="arm64",
-        help="Target ABI to serve (default: arm64)"
+        "--build",
+        nargs="?",
+        const="split",
+        choices=["split", "universal", "debug", "bundle"],
+        help="Compile target package before sharing (default target: split)"
     )
-    args = parser.parse_args()
-
+    parser.add_argument("--split", action="store_true", help="Shortcut to build split-per-abi APKs")
+    parser.add_argument("--universal", action="store_true", help="Shortcut to build universal release APK")
+    parser.add_argument("--debug", action="store_true", help="Shortcut to build debug APK")
+    parser.add_argument("--server", action="store_true", help="Launch server directly without compiling first")
+    parser.add_argument("--clean-ram", action="store_true", help="Stop Gradle daemons & trim memory without launching server")
+    parser.add_argument("--port", type=int, default=8080, help="Initial port to bind (default: 8080)")
+    
+    args, unknown = parser.parse_known_args()
     project_root = Path.cwd()
 
-    # Step 1: Optional Build
-    if args.build:
-        success = run_flutter_build(project_root, split_per_abi=not args.no_split)
-        if not success:
-            print("❌ Build failed. Aborting distribution.")
-            sys.exit(1)
-        print("✅ Build succeeded!")
+    # If only RAM cleaning requested
+    if args.clean_ram and not args.build and not args.server and not args.split and not args.universal and not args.debug:
+        clean_system_ram(project_root)
+        print("✅ Memory cleaned.")
+        return
 
-    # Step 2: Memory reclamation
-    if args.clean_ram:
+    # Determine build target from flags
+    chosen_build_target = None
+    if args.split:
+        chosen_build_target = "split"
+    elif args.universal:
+        chosen_build_target = "universal"
+    elif args.debug:
+        chosen_build_target = "debug"
+    elif args.build:
+        chosen_build_target = args.build
+
+    # If no flags passed, check if interactive terminal
+    if chosen_build_target is None and not args.server:
+        if sys.stdin.isatty():
+            choice = interactive_menu(project_root)
+            if choice == "1":
+                chosen_build_target = "split"
+            elif choice == "2":
+                chosen_build_target = "universal"
+            elif choice == "3":
+                chosen_build_target = "debug"
+            elif choice == "4":
+                chosen_build_target = None  # Launch server directly
+            elif choice == "5":
+                clean_system_ram(project_root)
+                print("✅ Memory cleaned.")
+                return
+            elif choice == "0":
+                print("Exiting.")
+                return
+            else:
+                print("Invalid choice, defaulting to launching server.")
+                chosen_build_target = None
+        else:
+            # Non-interactive default: launch server directly
+            chosen_build_target = None
+
+    # Step 1: Pre-build if chosen
+    if chosen_build_target:
+        print(f"\n⚙️ Starting Flutter compilation: target = '{chosen_build_target}'...")
+        success, _ = run_flutter_build(project_root, target=chosen_build_target)
+        if not success:
+            print(f"❌ Build failed for target '{chosen_build_target}'.")
+            sys.exit(1)
+        print("✅ Build completed successfully!")
+
+        # Step 2: Memory reclamation after compilation
         clean_system_ram(project_root)
 
-    # Step 3: APK Discovery
-    apks = find_built_apks(project_root)
-    if not apks:
-        print("❌ No APK found in build/ outputs. Run with --build first or build your Flutter app.")
-        sys.exit(1)
-
-    chosen_apk = apks.get(args.type) or apks.get("arm64") or list(apks.values())[0]
-    apk_size_mb = chosen_apk.stat().st_size / (1024 * 1024)
-    app_name = get_project_name(project_root)
-
-    # Step 4: Staging
-    staging_dir = project_root / ".apk_wifi_share"
-    staging_dir.mkdir(exist_ok=True)
-
-    target_apk_name = "app-release.apk"
-    shutil.copy2(chosen_apk, staging_dir / target_apk_name)
-
-    html_content = generate_mobile_portal_html(
-        apk_filename=target_apk_name,
-        apk_size_mb=apk_size_mb,
-        abi_type=args.type.upper(),
-        app_name=app_name
-    )
-    (staging_dir / "index.html").write_text(html_content, encoding="utf-8")
-
-    # Step 5: Serve
-    serve_directory(
-        staging_dir=staging_dir,
-        port=args.port,
-        apk_name=target_apk_name,
-        project_root=project_root
-    )
+    # Step 3: Launch Wi-Fi Distribution Portal
+    serve_portal(project_root=project_root, port=args.port)
 
 if __name__ == "__main__":
     main()
