@@ -59,6 +59,11 @@ Run the single-line command for your operating system to install both the global
 
 ### Windows (PowerShell)
 ```powershell
+git clone https://github.com/chamod-rashmith/flutter-apk-wifi-distributor.git; cd flutter-apk-wifi-distributor; powershell -ExecutionPolicy Bypass -File .\bin\install.ps1
+```
+
+### Windows (CMD)
+```cmd
 git clone https://github.com/chamod-rashmith/flutter-apk-wifi-distributor.git && cd flutter-apk-wifi-distributor && powershell -ExecutionPolicy Bypass -File .\bin\install.ps1
 ```
 
