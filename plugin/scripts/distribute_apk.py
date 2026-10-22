@@ -219,7 +219,11 @@ def stage_apks(project_root: Path, staging_dir: Path) -> list:
 
 def run_flutter_build(project_root: Path, target: str = "split", log_callback=None):
     target_config = BUILD_TARGETS.get(target, BUILD_TARGETS["split"])
-    cmd = target_config["cmd"]
+    cmd = list(target_config["cmd"])
+    use_shell = (sys.platform == "win32")
+    if sys.platform == "win32":
+        flutter_bin = shutil.which("flutter.bat") or shutil.which("flutter") or "flutter"
+        cmd[0] = flutter_bin
 
     header = f"⚙️ Running Flutter build: {' '.join(cmd)}\n"
     if log_callback:
@@ -227,16 +231,25 @@ def run_flutter_build(project_root: Path, target: str = "split", log_callback=No
     else:
         print(header, end="")
 
-    process = subprocess.Popen(
-        cmd,
-        cwd=str(project_root),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        encoding="utf-8",
-        errors="replace"
-    )
+    try:
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(project_root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            encoding="utf-8",
+            errors="replace",
+            shell=use_shell
+        )
+    except Exception as e:
+        err_msg = f"\n❌ Failed to launch Flutter build process: {e}\n"
+        if log_callback:
+            log_callback(err_msg)
+        else:
+            print(err_msg)
+        return False, err_msg
 
     full_output = []
     if process.stdout:
@@ -608,6 +621,24 @@ class DistributorRequestHandler(SimpleHTTPRequestHandler):
     local_ip: str = "127.0.0.1"
     port: int = 8080
 
+    def _send_bytes(self, data: bytes, content_type: str = "application/json", status: int = HTTPStatus.OK):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _send_json(self, obj: dict, status: int = HTTPStatus.OK):
+        data = json.dumps(obj).encode("utf-8")
+        self._send_bytes(data, content_type="application/json; charset=utf-8", status=status)
+
+    def _send_html(self, html_str: str, status: int = HTTPStatus.OK):
+        data = html_str.encode("utf-8")
+        self._send_bytes(data, content_type="text/html; charset=utf-8", status=status)
+
     def log_message(self, format, *args):
         if len(args) > 0 and "/api/status" in str(args[0]):
             return
@@ -618,33 +649,23 @@ class DistributorRequestHandler(SimpleHTTPRequestHandler):
         path = unquote(parsed.path)
 
         if path in ["/", "/index.html"]:
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
             project_name = get_project_name(self.project_root)
             html = generate_mobile_portal_html(project_name, self.local_ip, self.port)
-            self.wfile.write(html.encode("utf-8"))
+            self._send_html(html)
             return
 
         if path == "/api/status":
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
             status = self.build_manager.get_status()
             status["projectName"] = get_project_name(self.project_root)
             status["localIp"] = self.local_ip
             status["port"] = self.port
             status["apks"] = find_built_apks(self.project_root)
-            self.wfile.write(json.dumps(status).encode("utf-8"))
+            self._send_json(status)
             return
 
         if path == "/api/clean-ram":
             ram_res = clean_ram(self.project_root, verbose=False)
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(ram_res).encode("utf-8"))
+            self._send_json(ram_res)
             return
 
         if path.startswith("/download/"):
@@ -704,22 +725,16 @@ class DistributorRequestHandler(SimpleHTTPRequestHandler):
                 target = "split"
 
             started = self.build_manager.start_build(target)
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
             if started:
                 resp = {"status": "started", "target": target, "message": f"Build initiated for {target}"}
             else:
                 resp = {"status": "error", "message": "A build is already running in background"}
-            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            self._send_json(resp)
             return
 
         if path == "/api/clean-ram":
             ram_res = clean_ram(self.project_root, verbose=False)
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(ram_res).encode("utf-8"))
+            self._send_json(ram_res)
             return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Endpoint not found.")

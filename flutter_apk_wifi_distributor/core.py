@@ -170,7 +170,12 @@ def run_flutter_build(
     Streams log output lines in real-time if a callback is provided.
     """
     target_config = BUILD_TARGETS.get(target, BUILD_TARGETS["split"])
-    cmd = target_config["cmd"]
+    cmd = list(target_config["cmd"])
+
+    use_shell = (sys.platform == "win32")
+    if sys.platform == "win32":
+        flutter_bin = shutil.which("flutter.bat") or shutil.which("flutter") or "flutter"
+        cmd[0] = flutter_bin
 
     header = f"⚙️ Executing Flutter Build: {' '.join(cmd)}\n"
     if log_callback:
@@ -178,16 +183,25 @@ def run_flutter_build(
     else:
         print(header, end="")
 
-    process = subprocess.Popen(
-        cmd,
-        cwd=str(project_root),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        encoding="utf-8",
-        errors="replace"
-    )
+    try:
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(project_root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            encoding="utf-8",
+            errors="replace",
+            shell=use_shell
+        )
+    except Exception as e:
+        err_msg = f"\n❌ Failed to launch Flutter build process: {e}\n"
+        if log_callback:
+            log_callback(err_msg)
+        else:
+            print(err_msg)
+        return False, err_msg
 
     full_output = []
     if process.stdout:

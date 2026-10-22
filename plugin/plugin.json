@@ -1,7 +1,7 @@
 {
   "name": "flutter-apk-wifi-distributor",
   "displayName": "Flutter APK Wi-Fi Distributor & RAM Optimizer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Embedded Wi-Fi server to select, compile (split-per-abi, universal, or debug APK), optimize RAM by terminating Gradle daemons, and distribute Flutter APKs to mobile devices.",
   "suggestedPrompts": [
     "Start Wi-Fi distribution server to choose and build Flutter APK",
