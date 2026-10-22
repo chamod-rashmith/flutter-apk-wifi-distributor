@@ -8,6 +8,7 @@
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-brightgreen.svg)](#installation)
 [![Flutter](https://img.shields.io/badge/Flutter-Ready-02569B?logo=flutter)](https://flutter.dev)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C818ICQE)
 
 <br/>
 
@@ -167,6 +168,14 @@ Once installed, simply ask Antigravity:
 > *"Launch Wi-Fi server to choose and build my Flutter APK"*  
 > *"Build split APKs and share to my phone over Wi-Fi"*  
 > *"Clean Gradle RAM and distribute the latest APK to my mobile"*
+
+---
+
+## 💖 Support
+
+If this tool saved your device cables, bandwidth, or RAM, consider supporting development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C818ICQE)
 
 ---
 

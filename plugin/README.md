@@ -62,3 +62,9 @@ apk-distribute --universal
 apk-distribute --debug
 apk-distribute --clean-ram
 ```
+
+---
+
+## 💖 Support
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C818ICQE)
